@@ -68,6 +68,9 @@ if enable_sum_block:
     except Exception as e:
         st.error(f"Sum-in-last-N filter error: {e}")
 
+F208,Seed-sum last-digit rule: if seed sum ends in 3, eliminate combos with sum ending in 1 (153/155 kept),True,(sum(seed) % 10) == 3,"(sum(combo) % 10) == 1",,,,,,,,,,
+
+
 # ----------------------
 # Helpers: parsing & normalization
 # ----------------------
