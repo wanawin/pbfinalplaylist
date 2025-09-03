@@ -229,9 +229,9 @@ if use_hist and history_seeds:
         else:
             # fall back to manual parse below
             pass
-    if seed_text and not seed_numbers:
+        if seed_text and not seed_numbers:
         st.sidebar.error("Seed winner must have exactly 5 integers in 1..69.")
-    if prev_text and not prev_numbers:
+        if prev_text and not prev_numbers:
         st.sidebar.error("Prev winner must have exactly 5 integers in 1..69.")
 
     tens_list, bad_t = normalize_tens(t_text)
