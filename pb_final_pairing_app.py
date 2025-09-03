@@ -227,8 +227,8 @@ if use_hist and history_seeds:
         if seed_index+1 < len(history_seeds):
             prev_numbers = history_seeds[-(seed_index+2)]
         else:
- # fall back to manual parse below
-        pass
+            # fall back to manual parse below
+            pass
     if seed_text and not seed_numbers:
         st.sidebar.error("Seed winner must have exactly 5 integers in 1..69.")
     if prev_text and not prev_numbers:
