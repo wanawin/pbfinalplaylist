@@ -1,0 +1,8 @@
+id,name,enabled,applicable_if,expression
+FINAL_KEEP_CARRY_EVEN,Keep carry in 0–1 when FINAL SUM even (95% cover) — eliminate otherwise,True,final_sum % 2 == 0,"not (0 <= shared_numbers(seed_numbers, combo_numbers) <= 1)"
+FINAL_KEEP_CARRY_ODD,Keep carry in 0–1 when FINAL SUM odd (95% cover) — eliminate otherwise,True,final_sum % 2 == 1,"not (0 <= shared_numbers(seed_numbers, combo_numbers) <= 1)"
+FINAL_KEEP_SUM_NEAR_PREV95,Eliminate if |FINAL SUM − previous SUM| > 120 (95% cover),True,len(prev_seed_numbers)==5,abs(final_sum - sum(prev_seed_numbers)) > 120
+FINAL_KEEP_RANGE_NEAR_PREV95,Eliminate if |FINAL RANGE − previous RANGE| > 30 (95% cover),True,len(prev_seed_numbers)==5,abs(final_range - (max(prev_seed_numbers)-min(prev_seed_numbers))) > 30
+FINAL_KEEP_LOWCOUNT,"Eliminate if low(≤34) count NOT in [1,4] (~90%+ cover)",True,True,not (1 <= sum(1 for n in combo_numbers if n <= 34) <= 4)
+FINAL_KEEP_EVENCOUNT,"Eliminate if even-count NOT in [0,4] (~90%+ cover)",False,True,not (0 <= sum(1 for n in combo_numbers if n % 2 == 0) <= 4)
+F0001_FINAL,Eliminate combos where FINAL SUM equals 1 [final-adapted],False,True,final_sum == 1
