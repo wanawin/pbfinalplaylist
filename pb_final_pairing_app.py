@@ -214,7 +214,7 @@ try:
         _rows = _rows[::-1]  # chronological
         history_seeds = [r[1] for r in _rows]
         history_labels = [f"{i+1:02d} | {r[0]} — " + "-".join(f"{x:02d}" for x in r[1]) for i,r in enumerate(_rows)]
-    except Exception as _e:
+except Exception as _e:
         pass
 
     seed_source = st.sidebar.radio('Seed source', ['History', 'Manual'], index=0 if history_seeds else 1)
