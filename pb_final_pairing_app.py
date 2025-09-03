@@ -216,7 +216,7 @@ try:
         history_labels = [f"{i+1:02d} | {r[0]} — " + "-".join(f"{x:02d}" for x in r[1]) for i,r in enumerate(_rows)]
 except Exception as _e:
         pass
- seed_source = st.sidebar.radio('Seed source', ['History', 'Manual'], index=0 if history_seeds else 1)
+seed_source = st.sidebar.radio('Seed source', ['History', 'Manual'], index=0 if history_seeds else 1)
     use_hist = (seed_source == 'History')
     seed_index = 0
     if use_hist and history_seeds:
