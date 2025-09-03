@@ -219,7 +219,7 @@ except Exception as _e:
 seed_source = st.sidebar.radio('Seed source', ['History', 'Manual'], index=0 if history_seeds else 1)
 use_hist = (seed_source == 'History')
 seed_index = 0
-    if use_hist and history_seeds:
+if use_hist and history_seeds:
         seed_index = st.sidebar.slider("Select seed (0 = latest)", min_value=0, max_value=len(history_seeds)-1, value=0, step=1)
         seed_numbers = history_seeds[-(seed_index+1)]  # 0=latest
         st.sidebar.caption(f"Seed set to: " + "-".join(f"{x:02d}" for x in seed_numbers))
