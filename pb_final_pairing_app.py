@@ -217,7 +217,7 @@ try:
 except Exception as _e:
         pass
 seed_source = st.sidebar.radio('Seed source', ['History', 'Manual'], index=0 if history_seeds else 1)
-    use_hist = (seed_source == 'History')
+use_hist = (seed_source == 'History')
     seed_index = 0
     if use_hist and history_seeds:
         seed_index = st.sidebar.slider("Select seed (0 = latest)", min_value=0, max_value=len(history_seeds)-1, value=0, step=1)
