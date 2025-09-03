@@ -18,7 +18,7 @@ def normalize_tens(text):
         digs = [c for c in tok if c.isdigit()]
         if len(digs) != 5 or any(c not in '0123456' for c in digs):
             bad.append(tok); continue
-        out.append(''.join(sorted(digs)))
+    out.append(''.join(sorted(digs)))
     # dedupe preserve order
     seen=set(); out2=[]
     for o in out:
@@ -218,7 +218,7 @@ except Exception as _e:
         pass
 seed_source = st.sidebar.radio('Seed source', ['History', 'Manual'], index=0 if history_seeds else 1)
 use_hist = (seed_source == 'History')
-    seed_index = 0
+seed_index = 0
     if use_hist and history_seeds:
         seed_index = st.sidebar.slider("Select seed (0 = latest)", min_value=0, max_value=len(history_seeds)-1, value=0, step=1)
         seed_numbers = history_seeds[-(seed_index+1)]  # 0=latest
