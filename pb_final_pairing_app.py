@@ -239,8 +239,8 @@ ones_list, bad_o = normalize_ones(o_text)
 if bad_t: st.sidebar.warning(f"Ignored invalid tens entries: {', '.join(bad_t[:5])}" + (" ..." if len(bad_t)>5 else ""))
 if bad_o: st.sidebar.warning(f"Ignored invalid ones entries: {', '.join(bad_o[:5])}" + (" ..." if len(bad_o)>5 else ""))
 
-    st.sidebar.markdown(f"**Tens combos:** {len(tens_list)}")
-    st.sidebar.markdown(f"**Ones combos:** {len(ones_list)}")
+st.sidebar.markdown(f"**Tens combos:** {len(tens_list)}")
+st.sidebar.markdown(f"**Ones combos:** {len(ones_list)}")
 
     # Track/Test combos
     st.sidebar.markdown("---")
