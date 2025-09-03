@@ -243,7 +243,7 @@ st.sidebar.markdown(f"**Tens combos:** {len(tens_list)}")
 st.sidebar.markdown(f"**Ones combos:** {len(ones_list)}")
 
     # Track/Test combos
-    st.sidebar.markdown("---")
+st.sidebar.markdown("---")
     track_text = st.sidebar.text_area("Track/Test 5-number sets (e.g., 01-16-21-47-60)", height=120)
     preserve_tracked = st.sidebar.checkbox("Preserve tracked combos during filtering", value=True)
     inject_tracked = st.sidebar.checkbox("Inject tracked combos even if not generated", value=False)
