@@ -268,20 +268,19 @@ def main():
 
     # Show bands for transparency
     with st.expander("Percentile bands in use"):
-        # === CSV-driven manual filters (final-stage) ===
-    candidates = manual_filters_ui(
-    candidates=candidates,
-    seed_numbers=seed_numbers,
-    prev_seed_numbers=prev_seed_numbers,
-)
-st.caption(f"Manual filters block ran — pool now: {len(candidates)}")
-
-        st.write({
+               st.write({
             "SUM": bands["sum"],
             "RANGE": bands["range"],
             "ONES-SUM": bands["ones"],
             "TENS-SUM": bands["tens"],
         })
+# === CSV-driven manual filters (final-stage) ===
+candidates = manual_filters_ui(
+    candidates=candidates,
+    seed_numbers=seed_numbers,
+    prev_seed_numbers=prev_seed_numbers,
+)
+st.caption(f"Manual filters block ran — pool now: {len(candidates)}")
 
 def manual_filters_ui(candidates, seed_numbers, prev_seed_numbers):
     """CSV-driven final-stage filters. Returns the filtered candidate list."""
