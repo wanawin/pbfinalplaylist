@@ -275,10 +275,110 @@ def main():
             "TENS-SUM": bands["tens"],
         })
 # === CSV-driven manual filters (final-stage) ===
-candidates = manual_filters_ui(
-    candidates=candidates,
-    seed_numbers=seed_numbers,
-    prev_seed_numbers=prev_seed_numbers,
+import pandas as pd
+from pathlib import Path
+
+st.header("🛠️ Manual Filters (final-stage)")
+st.write("Percentile screens already applied above. You can add/stack CSV-based filters here.")
+
+# ---- Load filter CSVs ----
+_cols = ["id", "name", "enabled", "applicable_if", "expression"]
+
+def _load_filters_csv(src):
+    try:
+        df = pd.read_csv(src, dtype=str).fillna("")
+    except Exception as e:
+        st.warning(f"Could not read filter CSV: {e}")
+        return pd.DataFrame(columns=_cols)
+    for c in _cols:
+        if c not in df.columns:
+            df[c] = ""
+    return df[_cols]
+
+use_default = st.checkbox("Use default final filters (pb_final_filters_all.csv)", value=True)
+uploaded = st.file_uploader("Upload additional filter CSV (optional)", type="csv")
+
+_filters_df = pd.DataFrame(columns=_cols)
+if use_default:
+    _default_path = Path(__file__).with_name("pb_final_filters_all.csv")
+    if _default_path.exists():
+        _filters_df = pd.concat([_filters_df, _load_filters_csv(_default_path)], ignore_index=True)
+    else:
+        st.warning("Default pack pb_final_filters_all.csv not found alongside this app.")
+
+if uploaded is not None:
+    _filters_df = pd.concat([_filters_df, _load_filters_csv(uploaded)], ignore_index=True)
+
+if _filters_df.empty:
+    st.info("No manual filters loaded; skipping this stage.")
+else:
+    # ---- Compile rules ----
+    _compiled = []
+    for _, r in _filters_df.iterrows():
+        if str(r["enabled"]).strip().lower() not in ("", "true", "1", "yes"):
+            continue
+        fid  = (str(r["id"]).strip() or "UNKNOWN")
+        name = (str(r["name"]).strip() or fid)
+        app  = (str(r["applicable_if"]).strip() or "True")
+        expr = (str(r["expression"]).strip())
+        try:
+            app_c  = compile(app,  f"<appif:{fid}>", "eval")
+            expr_c = compile(expr, f"<expr:{fid}>",  "eval")
+            _compiled.append((fid, name, app_c, expr_c))
+        except Exception as e:
+            st.warning(f"Skipping {fid} (compile error): {e}")
+
+    _hide_zero = st.checkbox("Hide filters with 0 initial eliminations", value=True)
+    c1, c2 = st.columns([1, 1])
+    with c1:
+        _sel_all = st.button("Select all")
+    with c2:
+        _desel_all = st.button("Deselect all")
+
+    # ---- Init cut counts ----
+    _init_counts = {}
+    for fid, name, app_c, expr_c in _compiled:
+        cuts = 0
+        for _c in candidates:  # 'candidates' must exist already
+            _ctx = build_ctx(_c, seed_numbers, prev_seed_numbers)  # your existing helper
+            try:
+                if eval(app_c, {}, _ctx) and eval(expr_c, {}, _ctx):
+                    cuts += 1
+            except Exception:
+                pass
+        _init_counts[fid] = cuts
+
+    # ---- Pick active rules ----
+    _active = {}
+    for fid, name, app_c, expr_c in _compiled:
+        cuts = _init_counts.get(fid, 0)
+        if _hide_zero and cuts == 0:
+            continue
+        label = f"{fid}: {name} — init cuts {cuts}"
+        default_checked = True if (_sel_all or (cuts > 0 and not _desel_all)) else False
+        _active[fid] = st.checkbox(label, value=default_checked, key=f"final_{fid}")
+
+    # ---- Apply ----
+    _survivors = []
+    for _c in candidates:
+        _ctx = build_ctx(_c, seed_numbers, prev_seed_numbers)
+        eliminated = False
+        for fid, name, app_c, expr_c in _compiled:
+            if not _active.get(fid, False):
+                continue
+            try:
+                if eval(app_c, {}, _ctx) and eval(expr_c, {}, _ctx):
+                    eliminated = True
+                    break
+            except Exception:
+                pass
+        if not eliminated:
+            _survivors.append(_c)
+
+    candidates = _survivors  # update pool
+
+st.subheader(f"Remaining after manual filters: {len(candidates)}")
+
 )
 st.caption(f"Manual filters block ran — pool now: {len(candidates)}")
 
