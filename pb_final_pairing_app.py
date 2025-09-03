@@ -189,7 +189,7 @@ def parse_numbers(s):
         nums = [n for n in nums if 1 <= n <= 69]
         if len(nums) == 5:
             return sorted(nums)
-        return []
+            return []
     seed_numbers = parse_numbers(seed_text)
     prev_numbers = parse_numbers(prev_text)
 
