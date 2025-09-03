@@ -184,7 +184,7 @@ def main():
     prev_text = st.sidebar.text_input("Prev winner (optional)", value="").strip()
 
     # Normalize seed numbers
-def parse_numbers(s):
+   def parse_numbers(s):
         nums = [int(x) for x in re.findall(r"\d+", s)]
         nums = [n for n in nums if 1 <= n <= 69]
         if len(nums) == 5:
