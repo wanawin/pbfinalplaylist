@@ -87,10 +87,10 @@ def build_ctx(combo_nums, seed_nums, prev_nums):
     ones_low = sum(1 for d in combo_ones if 0 <= d <= 4)
     ones_high = 5 - ones_low
 
-    def multiset_shared(a,b):
-        from collections import Counter
-        ca, cb = Counter(a), Counter(b)
-        return sum((ca & cb).values())
+def multiset_shared(a,b):
+    from collections import Counter
+    ca, cb = Counter(a), Counter(b)
+    return sum((ca & cb).values())
 
     ctx = {
         # Numbers-level
@@ -184,7 +184,7 @@ def main():
     prev_text = st.sidebar.text_input("Prev winner (optional)", value="").strip()
 
     # Normalize seed numbers
-    def parse_numbers(s):
+def parse_numbers(s):
         nums = [int(x) for x in re.findall(r"\d+", s)]
         nums = [n for n in nums if 1 <= n <= 69]
         if len(nums) == 5:
@@ -393,7 +393,7 @@ def main():
                 st.write("-".join(f"{x:02d}" for x in c))
 
     # Downloads
-  import pandas as pd
+import pandas as pd
 
 def fmt_combo(c):
     return "-".join(f"{int(x):02d}" for x in sorted(c))
