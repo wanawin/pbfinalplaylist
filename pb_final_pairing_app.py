@@ -194,8 +194,8 @@ seed_numbers = parse_numbers(seed_text)
 prev_numbers = parse_numbers(prev_text)
 
     # --- History seeds (auto from pwrbll.txt if available)
-    history_seeds = []
-    history_labels = []
+history_seeds = []
+history_labels = []
     try:
         with open('pwrbll.txt','r',encoding='utf-8') as _f:
             _lines = _f.readlines()
