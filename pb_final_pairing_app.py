@@ -1,4 +1,3 @@
-
 import streamlit as st
 from collections import Counter
 from itertools import permutations
@@ -18,6 +17,7 @@ def _split_tokens(text: str):
                 toks.append(token)
     return toks
 
+
 def normalize_tens(text: str):
     """Accept tens survivors as 5-digit strings (digits 0-6), one per line/comma.
        Return (normalized_sorted_multiset_strings, bad_tokens)."""
@@ -34,8 +34,10 @@ def normalize_tens(text: str):
     out2 = []
     for o in out:
         if o not in seen:
-            out2.append(o); seen.add(o)
+            out2.append(o)
+            seen.add(o)
     return out2, bad
+
 
 def normalize_ones(text: str):
     """Accept ones survivors as 5-digit strings (digits 0-9)."""
@@ -51,8 +53,10 @@ def normalize_ones(text: str):
     out2 = []
     for o in out:
         if o not in seen:
-            out2.append(o); seen.add(o)
+            out2.append(o)
+            seen.add(o)
     return out2, bad
+
 
 def normalize_final_sets(text: str):
     """Accept full 5-number sets like 01-16-21-47-60; return (list_of_tuples, bad_tokens)."""
@@ -61,13 +65,15 @@ def normalize_final_sets(text: str):
     for tok in toks:
         nums = [int(x) for x in re.findall(r"\d+", tok)]
         if len(nums) != 5 or any(n < 1 or n > 69 for n in nums):
-            bad.append(tok); continue
+            bad.append(tok)
+            continue
         out.append(tuple(sorted(nums)))
     seen = set()
     out2 = []
     for o in out:
         if o not in seen:
-            out2.append(o); seen.add(o)
+            out2.append(o)
+            seen.add(o)
     return out2, bad
 
 # ----------------------
@@ -77,6 +83,7 @@ def all_unique_perms(seq):
     """Return unique permutations of given sequence (len <= 5)."""
     # Using set(permutations(...)) is fine for len=5 (120 perms).
     return set(permutations(seq, len(seq)))
+
 
 def pair_tens_ones(tens_str, ones_str):
     """Return a set of sorted 5-number tuples (valid 1..69, all unique)."""
@@ -99,10 +106,22 @@ def multiset_shared(a, b):
     ca, cb = Counter(a), Counter(b)
     return sum((ca & cb).values())
 
-def final_sum(a): return sum(a)
-def final_range(a): return max(a)-min(a)
-def ones_sum(a): return sum(n%10 for n in a)
-def tens_sum(a): return sum(n//10 for n in a)
+
+def final_sum(a):
+    return sum(a)
+
+
+def final_range(a):
+    return max(a) - min(a)
+
+
+def ones_sum(a):
+    return sum(n % 10 for n in a)
+
+
+def tens_sum(a):
+    return sum(n // 10 for n in a)
+
 
 def build_ctx(combo_nums, seed_nums, prev_nums):
     fs = final_sum(combo_nums)
@@ -125,7 +144,15 @@ def build_ctx(combo_nums, seed_nums, prev_nums):
         "shared_numbers": multiset_shared,
         "shared_ones": multiset_shared,
         "shared_tens": multiset_shared,
-        "sum": sum, "min": min, "max": max, "len": len, "abs": abs, "set": set, "any": any, "all": all, "range": range
+        "sum": sum,
+        "min": min,
+        "max": max,
+        "len": len,
+        "abs": abs,
+        "set": set,
+        "any": any,
+        "all": all,
+        "range": range,
     }
     return ctx
 
@@ -138,12 +165,15 @@ def load_history_rows(history_path="pwrbll.txt"):
         with open(history_path, "r", encoding="utf-8") as f:
             for ln in f:
                 ln = ln.strip()
-                if not ln: continue
+                if not ln:
+                    continue
                 m = re.search(r"^(.*?),\s*Powerball:\s*(\d+)", ln)
-                if not m: continue
+                if not m:
+                    continue
                 date_and_set, _ = m.groups()
                 parts = re.split(r"\t", date_and_set)
-                if not parts: continue
+                if not parts:
+                    continue
                 five = parts[-1]
                 nums = [int(x) for x in re.findall(r"\d{2}", five)]
                 if len(nums) == 5:
@@ -152,6 +182,7 @@ def load_history_rows(history_path="pwrbll.txt"):
     except Exception:
         rows = []
     return rows
+
 
 def compute_percentile_bands(history_rows, lo_q=0.10, hi_q=0.90):
     if not history_rows:
@@ -166,16 +197,14 @@ def compute_percentile_bands(history_rows, lo_q=0.10, hi_q=0.90):
     rngs = pd.Series([final_range(a) for a in history_rows])
     ones = pd.Series([ones_sum(a) for a in history_rows])
     tens = pd.Series([tens_sum(a) for a in history_rows])
+
     def band(series):
         lo = int(np.floor(series.quantile(lo_q)))
         hi = int(np.ceil(series.quantile(hi_q)))
         return lo, hi
-    return {
-        "sum": band(sums),
-        "range": band(rngs),
-        "ones": band(ones),
-        "tens": band(tens),
-    }
+
+    return {"sum": band(sums), "range": band(rngs), "ones": band(ones), "tens": band(tens)}
+
 
 def in_band(val, lo, hi):
     return (lo is None or val >= lo) and (hi is None or val <= hi)
@@ -191,12 +220,16 @@ def main():
     o_text = st.sidebar.text_area("Paste ones survivors (one per line, e.g., 57999)", height=150)
 
     # Seed winner inputs
-    seed_text = st.sidebar.text_input("Seed winner (5 nums 1–69, e.g., 01-16-21-47-60)", value="").strip()
+    seed_text = st.sidebar.text_input(
+        "Seed winner (5 nums 1–69, e.g., 01-16-21-47-60)", value=""
+    ).strip()
     prev_text = st.sidebar.text_input("Prev winner (optional)", value="").strip()
+
     def parse_numbers(s: str):
         nums = [int(x) for x in re.findall(r"\d+", s or "")]
         nums = [n for n in nums if 1 <= n <= 69]
         return sorted(nums) if len(nums) == 5 else []
+
     seed_numbers = parse_numbers(seed_text)
     prev_numbers = parse_numbers(prev_text)
 
@@ -204,26 +237,42 @@ def main():
     tens_list, bad_t = normalize_tens(t_text)
     ones_list, bad_o = normalize_ones(o_text)
     if bad_t:
-        st.sidebar.warning("Ignored invalid tens entries: " + ", ".join(bad_t[:5]) + (" ..." if len(bad_t) > 5 else ""))
+        st.sidebar.warning(
+            "Ignored invalid tens entries: "
+            + ", ".join(bad_t[:5])
+            + (" ..." if len(bad_t) > 5 else "")
+        )
     if bad_o:
-        st.sidebar.warning("Ignored invalid ones entries: " + ", ".join(bad_o[:5]) + (" ..." if len(bad_o) > 5 else ""))
+        st.sidebar.warning(
+            "Ignored invalid ones entries: "
+            + ", ".join(bad_o[:5])
+            + (" ..." if len(bad_o) > 5 else "")
+        )
 
     st.sidebar.markdown(f"**Tens combos:** {len(tens_list)}")
     st.sidebar.markdown(f"**Ones combos:** {len(ones_list)}")
 
     # Track/Test combos
     st.sidebar.markdown("---")
-    track_text = st.sidebar.text_area("Track/Test 5-number sets (e.g., 01-16-21-47-60)", height=120)
-    preserve_tracked = st.sidebar.checkbox("Preserve tracked combos during filtering", value=True)
-    inject_tracked = st.sidebar.checkbox("Inject tracked combos even if not generated", value=False)
+    track_text = st.sidebar.text_area(
+        "Track/Test 5-number sets (e.g., 01-16-21-47-60)", height=120
+    )
+    preserve_tracked = st.sidebar.checkbox(
+        "Preserve tracked combos during filtering", value=True
+    )
+    inject_tracked = st.sidebar.checkbox(
+        "Inject tracked combos even if not generated", value=False
+    )
     tracked, _ = normalize_final_sets(track_text)
     Tracked = set(tracked)
 
     # Percentile auto-screen settings
     st.sidebar.markdown("---")
     st.sidebar.subheader("Auto percentile screen")
-    auto_on = st.sidebar.checkbox("Apply after generation (before deduplication)", value=True)
-    pct_window = st.sidebar.selectbox("Band", ["P10–P90","P20–P80"], index=0)
+    auto_on = st.sidebar.checkbox(
+        "Apply after generation (before deduplication)", value=True
+    )
+    pct_window = st.sidebar.selectbox("Band", ["P10–P90", "P20–P80"], index=0)
     use_sum = st.sidebar.checkbox("Use FINAL SUM band", value=True)
     use_range = st.sidebar.checkbox("Use FINAL RANGE band", value=True)
     use_ones = st.sidebar.checkbox("Use ONES-SUM band", value=False)
@@ -252,11 +301,18 @@ def main():
     def pass_pct(c):
         if not auto_on:
             return True
-        fs = final_sum(c); fr = final_range(c); os = ones_sum(c); ts = tens_sum(c)
-        if use_sum and not in_band(fs, *bands["sum"]): return False
-        if use_range and not in_band(fr, *bands["range"]): return False
-        if use_ones and not in_band(os, *bands["ones"]): return False
-        if use_tens and not in_band(ts, *bands["tens"]): return False
+        fs = final_sum(c)
+        fr = final_range(c)
+        os = ones_sum(c)
+        ts = tens_sum(c)
+        if use_sum and not in_band(fs, *bands["sum"]):
+            return False
+        if use_range and not in_band(fr, *bands["range"]):
+            return False
+        if use_ones and not in_band(os, *bands["ones"]):
+            return False
+        if use_tens and not in_band(ts, *bands["tens"]):
+            return False
         return True
 
     screened = [c for c in raw if (c in Tracked and preserve_tracked) or pass_pct(c)]
@@ -268,16 +324,121 @@ def main():
 
     # Show bands for transparency
     with st.expander("Percentile bands in use"):
-        st.write({
-            "SUM": bands["sum"],
-            "RANGE": bands["range"],
-            "ONES-SUM": bands["ones"],
-            "TENS-SUM": bands["tens"],
-        })
+        st.write(
+            {
+                "SUM": bands["sum"],
+                "RANGE": bands["range"],
+                "ONES-SUM": bands["ones"],
+                "TENS-SUM": bands["tens"],
+            }
+        )
 
-    # ---------------------- Manual filters (optional; your CSV-driven system can be added here if desired) ----------------------
-    st.header("🔧 Manual Filters (final-stage)")
-    st.write("Percentile screens already applied above. You can add/stack more filters below if you upload a CSV-based filter pack in another version of the app.")
+    # ======================= CSV-driven Manual Filters (final-stage) =======================
+    from pathlib import Path
+
+    st.header("🛠️ Manual Filters (final-stage)")
+    st.write(
+        "Percentile screens already applied above. You can add/stack CSV-based filters here."
+    )
+
+    _cols = ["id", "name", "enabled", "applicable_if", "expression"]
+
+    def _load_filters_csv(src):
+        try:
+            df = pd.read_csv(src, dtype=str).fillna("")
+        except Exception as e:
+            st.warning(f"Could not read filter CSV: {e}")
+            return pd.DataFrame(columns=_cols)
+        for c in _cols:
+            if c not in df.columns:
+                df[c] = ""
+        return df[_cols]
+
+    use_default = st.checkbox(
+        "Use default final filters (pb_final_filters_all.csv)", value=True
+    )
+    uploaded = st.file_uploader("Upload additional filter CSV (optional)", type="csv")
+
+    _filters_df = pd.DataFrame(columns=_cols)
+    if use_default:
+        _default_path = Path(__file__).with_name("pb_final_filters_all.csv")
+        if _default_path.exists():
+            _filters_df = pd.concat(
+                [_filters_df, _load_filters_csv(_default_path)], ignore_index=True
+            )
+        else:
+            st.warning("Default pack pb_final_filters_all.csv not found alongside this app.")
+
+    if uploaded is not None:
+        _filters_df = pd.concat(
+            [_filters_df, _load_filters_csv(uploaded)], ignore_index=True
+        )
+
+    if not _filters_df.empty:
+        # Compile rules
+        _compiled = []
+        for _, r in _filters_df.iterrows():
+            if str(r["enabled"]).strip().lower() not in ("", "true", "1", "yes"):
+                continue
+            fid = (str(r["id"]).strip() or "UNKNOWN")
+            name = (str(r["name"]).strip() or fid)
+            app = (str(r["applicable_if"]).strip() or "True")
+            expr = (str(r["expression"]).strip())
+            try:
+                app_c = compile(app, f"<appif:{fid}>", "eval")
+                expr_c = compile(expr, f"<expr:{fid}>", "eval")
+                _compiled.append((fid, name, app_c, expr_c))
+            except Exception as e:
+                st.warning(f"Skipping {fid} (compile error): {e}")
+
+        _hide_zero = st.checkbox("Hide filters with 0 initial eliminations", value=True)
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            _sel_all = st.button("Select all")
+        with col2:
+            _desel_all = st.button("Deselect all")
+
+        # Initial cut counts
+        _init_counts = {}
+        for fid, name, app_c, expr_c in _compiled:
+            cuts = 0
+            for _c in candidates:
+                _ctx = build_ctx(_c, seed_numbers, prev_numbers)
+                try:
+                    if eval(app_c, {}, _ctx) and eval(expr_c, {}, _ctx):
+                        cuts += 1
+                except Exception:
+                    pass
+            _init_counts[fid] = cuts
+
+        # Pick active rules
+        _active = {}
+        for fid, name, app_c, expr_c in _compiled:
+            cuts = _init_counts.get(fid, 0)
+            if _hide_zero and cuts == 0:
+                continue
+            label = f"{fid}: {name} — init cuts {cuts}"
+            default_checked = True if (_sel_all or (cuts > 0 and not _desel_all)) else False
+            _active[fid] = st.checkbox(label, value=default_checked, key=f"final_{fid}")
+
+        # Apply selected rules
+        _survivors = []
+        for _c in candidates:
+            _ctx = build_ctx(_c, seed_numbers, prev_numbers)
+            eliminated = False
+            for fid, name, app_c, expr_c in _compiled:
+                if not _active.get(fid, False):
+                    continue
+                try:
+                    if eval(app_c, {}, _ctx) and eval(expr_c, {}, _ctx):
+                        eliminated = True
+                        break
+                except Exception:
+                    pass
+            if not eliminated:
+                _survivors.append(_c)
+
+        candidates = _survivors  # update pool
 
     # Survivors block
     st.subheader(f"Remaining after manual filters: {len(candidates)}")
@@ -311,6 +472,7 @@ def main():
         file_name="pb_final_survivors.txt",
         mime="text/plain",
     )
+
 
 if __name__ == "__main__":
     main()
