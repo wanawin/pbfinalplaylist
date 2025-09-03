@@ -393,12 +393,24 @@ def main():
                 st.write("-".join(f"{x:02d}" for x in c))
 
     # Downloads
-  csv_bytes = df_out.to_csv(index=False).encode("utf-8")
-txt_bytes = ("\n".join(df_out["numbers"])).encode("utf-8")
+  import pandas as pd
 
-st.download_button("Download survivors (CSV)", csv_bytes, "pb_final_survivors.csv", "text/csv")
-st.download_button("Download survivors (TXT)", txt_bytes, "pb_final_survivors.txt", "text/plain")
+def fmt_combo(c):
+    return "-".join(f"{int(x):02d}" for x in sorted(c))
 
+df_out = pd.DataFrame({"numbers": [fmt_combo(c) for c in pool]})
 
-if __name__ == "__main__":
-    main()
+st.download_button(
+    "Download survivors (CSV)",
+    df_out.to_csv(index=False),
+    file_name="pb_final_survivors.csv",
+    mime="text/csv",
+)
+
+st.download_button(
+    "Download survivors (TXT)",
+    "\n".join(df_out["numbers"]),
+    file_name="pb_final_survivors.txt",
+    mime="text/plain",
+)
+
