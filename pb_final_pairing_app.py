@@ -375,59 +375,125 @@ def main():
         )
 
     if not _filters_df.empty:
-        # Compile rules
+        # Compile rules (safe)
         _compiled = []
+        _invalid_rows = []
         for _, r in _filters_df.iterrows():
+            # keep only rows explicitly enabled (blank/true/1/yes)
             if str(r["enabled"]).strip().lower() not in ("", "true", "1", "yes"):
                 continue
             fid = (str(r["id"]).strip() or "UNKNOWN")
             name = (str(r["name"]).strip() or fid)
             app = (str(r["applicable_if"]).strip() or "True")
-            expr = (str(r["expression"]).strip())
+            expr = str(r.get("expression", "")).strip()
+
+            # mark invalid expression (empty or literal true)
+            expr_invalid = (not expr) or (expr.lower() in {"true", "1"})
             try:
                 app_c = compile(app, f"<appif:{fid}>", "eval")
-                expr_c = compile(expr, f"<expr:{fid}>", "eval")
-                _compiled.append((fid, name, app_c, expr_c))
-            except Exception as e:
-                st.warning(f"Skipping {fid} (compile error): {e}")
+            except Exception:
+                # if applicable_if is broken, treat as never applicable
+                app_c = compile("False", f"<appif:{fid}>", "eval")
+
+            expr_c = None
+            if not expr_invalid:
+                try:
+                    expr_c = compile(expr, f"<expr:{fid}>", "eval")
+                except Exception:
+                    expr_c = None
+                    expr_invalid = True
+
+            if expr_invalid:
+                _invalid_rows.append((fid, name, app, expr))
+            _compiled.append((fid, name, app_c, expr_c))
+
+        with st.expander("Inspect first 20 rules"):
+            try:
+                st.dataframe(_filters_df[["id","applicable_if","expression"]].head(20))
+            except Exception:
+                st.write("(no preview)")
+            if _invalid_rows:
+                st.warning(f"{len(_invalid_rows)} rules have invalid or literal-True expressions and will be ignored unless you edit the CSV.")
+
+        # ---------- Performance controls ----------
+        fast_mode = st.checkbox(
+            "⚡ Fast mode (skip init-cut counting)", value=True,
+            help="Keeps UI snappy. If off, app estimates per-filter cuts (slow for big pools)."
+        )
+        sample_for_counts = 0
+        if not fast_mode:
+            sample_for_counts = st.number_input(
+                "Sample size for init-cut counts (0 = full pool)",
+                min_value=0, max_value=len(candidates),
+                value=min(5000, len(candidates)), step=1000,
+            )
 
         _hide_zero = st.checkbox("Hide filters with 0 initial eliminations", value=True)
-        col1, col2 = st.columns([1, 1])
-        with col1:
-            _sel_all = st.button("Select all")
-        with col2:
-            _desel_all = st.button("Deselect all")
 
-        # Initial cut counts
+        # Buttons that truly toggle checkboxes
+        c1, c2 = st.columns([1, 1])
+        with c1:
+            if st.button("Select all"):
+                for fid, *_ in _compiled:
+                    st.session_state[f"final_{fid}"] = True
+        with c2:
+            if st.button("Deselect all"):
+                for fid, *_ in _compiled:
+                    st.session_state[f"final_{fid}"] = False
+
+        # ---------- Init-cut counting (optional) ----------
         _init_counts = {}
-        for fid, name, app_c, expr_c in _compiled:
-            cuts = 0
-            for _c in candidates:
-                _ctx = build_ctx(_c, seed_numbers, prev_numbers)
-                try:
-                    if eval(app_c, {}, _ctx) and eval(expr_c, {}, _ctx):
-                        cuts += 1
-                except Exception:
-                    pass
-            _init_counts[fid] = cuts
+        if not fast_mode:
+            import random
+            pool_for_counts = candidates if sample_for_counts == 0 else random.sample(
+                candidates, min(sample_for_counts, len(candidates))
+            )
+            for fid, name, app_c, expr_c in _compiled:
+                # skip invalid expressions in counting
+                if expr_c is None:
+                    _init_counts[fid] = 0
+                    continue
+                cuts = 0
+                for _c in pool_for_counts:
+                    _ctx = build_ctx(_c, seed_numbers, prev_numbers)
+                    try:
+                        if eval(app_c, {}, _ctx) and eval(expr_c, {}, _ctx):
+                            cuts += 1
+                    except Exception:
+                        pass
+                # scale estimate if sampling
+                if sample_for_counts and len(pool_for_counts) > 0:
+                    cuts = int(round(cuts * (len(candidates) / len(pool_for_counts))))
+                _init_counts[fid] = cuts
 
-        # Pick active rules
-        _active = {}
+        # ---------- Render checkboxes ----------
         for fid, name, app_c, expr_c in _compiled:
-            cuts = _init_counts.get(fid, 0)
-            if _hide_zero and cuts == 0:
+            cuts = _init_counts.get(fid, None)  # None in fast mode
+            if _hide_zero and (cuts is not None) and cuts == 0:
                 continue
-            label = f"{fid}: {name} — init cuts {cuts}"
-            default_checked = True if (_sel_all or (cuts > 0 and not _desel_all)) else False
-            _active[fid] = st.checkbox(label, value=default_checked, key=f"final_{fid}")
+            key = f"final_{fid}"
+            if key not in st.session_state:
+                # default unchecked so user can choose
+                st.session_state[key] = False
+            label = f"{fid}: {name}"
+            if expr_c is None:
+                label += "  ⚠️ invalid expr"
+            if cuts is not None:
+                label += f" — init cuts {cuts}"
+                if len(candidates) > 0 and cuts / len(candidates) >= 0.95:
+                    label += "  ⚠️ (kills pool)"
+            st.checkbox(label, key=key, disabled=(expr_c is None))
 
-        # Apply selected rules
+        # Active rule map from session state
+        _active = {fid: st.session_state.get(f"final_{fid}", False) for fid, *_ in _compiled}
+
+        # ---------- Apply selected rules ----------
         _survivors = []
         for _c in candidates:
             _ctx = build_ctx(_c, seed_numbers, prev_numbers)
             eliminated = False
             for fid, name, app_c, expr_c in _compiled:
-                if not _active.get(fid, False):
+                if not _active.get(fid, False) or expr_c is None:
                     continue
                 try:
                     if eval(app_c, {}, _ctx) and eval(expr_c, {}, _ctx):
