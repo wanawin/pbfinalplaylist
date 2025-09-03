@@ -248,32 +248,32 @@ track_text = st.sidebar.text_area("Track/Test 5-number sets (e.g., 01-16-21-47-6
 preserve_tracked = st.sidebar.checkbox("Preserve tracked combos during filtering", value=True)
 inject_tracked = st.sidebar.checkbox("Inject tracked combos even if not generated", value=False)
 
-    def normalize_final(text):
+def normalize_final(text):
         toks=[]
-        for line in text.splitlines():
+for line in text.splitlines():
             toks += [t.strip() for t in re.split(r"[,\s]+", line) if t.strip()]
         out,bad=[],[]
-        for tok in toks:
+for tok in toks:
             nums = sorted(int(x) for x in re.findall(r"\d+", tok))
-            if len(nums)!=5 or any(n<1 or n>69 for n in nums):
+if len(nums)!=5 or any(n<1 or n>69 for n in nums):
                 bad.append(tok); continue
             out.append(tuple(nums))
         seen=set(); out2=[]
-        for o in out:
-            if o not in seen: out2.append(o); seen.add(o)
-        return out2,bad
+for o in out:
+if o not in seen: out2.append(o); seen.add(o)
+return out2,bad
 
-    tracked, bad_finals = normalize_final(track_text)
-    if bad_finals:
+tracked, bad_finals = normalize_final(track_text)
+if bad_finals:
         st.sidebar.warning(f"Ignored invalid tracked sets: {', '.join(bad_finals[:3])}" + (" ..." if len(bad_finals)>3 else ""))
-    tracked_set = set(tracked)
+tracked_set = set(tracked)
 
     # Combine
     st.header("🧮 Combine Tens × Ones → Candidates")
     candidates = set()
-    for t in tens_list:
-        for o in ones_list:
-            for combo in pair_tens_ones(t, o):
+for t in tens_list:
+for o in ones_list:
+for combo in pair_tens_ones(t, o):
                 candidates.add(combo)
     st.write(f"Generated candidates (pre-filter): {len(candidates)}")
 
