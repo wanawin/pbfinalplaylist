@@ -275,36 +275,110 @@ def main():
             "TENS-SUM": bands["tens"],
         })
 
-    # ---------------------- Manual filters (optional; your CSV-driven system can be added here if desired) ----------------------
-    st.header("🔧 Manual Filters (final-stage)")
-    st.write("Percentile screens already applied above. You can add/stack more filters below if you upload a CSV-based filter pack in another version of the app.")
+  # ------------------------------ Manual Filters (final-stage) ------------------------------
+st.header("🛠️ Manual Filters (final-stage)")
+st.write("Percentile screens already applied above. You can add/stack CSV-based filters here.")
 
-    # Survivors block
-    st.subheader(f"Remaining after manual filters: {len(candidates)}")
+# === Load filter CSVs ===
+from pathlib import Path
+import pandas as pd
 
-    st.markdown("### ✅ Final Survivors")
-    with st.expander("Show remaining 5-number sets"):
-        tracked_survivors = [c for c in candidates if c in Tracked]
-        if tracked_survivors:
-            st.write("**Tracked survivors:**")
-            for c in tracked_survivors:
-                st.write("-".join(f"{x:02d}" for x in c))
-            st.write("---")
-        for c in candidates:
-            if c not in Tracked:
-                st.write("-".join(f"{x:02d}" for x in c))
+def _load_filters_csv(p):
+    try:
+        df = pd.read_csv(p, dtype=str).fillna("")
+        # normalize expected columns
+        cols = ["id","name","enabled","applicable_if","expression"]
+        for c in cols:
+            if c not in df.columns: df[c] = ""
+        return df[cols]
+    except Exception:
+        return pd.DataFrame(columns=["id","name","enabled","applicable_if","expression"])
 
-    # Downloads
-    def fmt_combo(c):
-        return "-".join(f"{int(x):02d}" for x in sorted(c))
+use_default = st.checkbox("Use default final filters (pb_final_filters_all.csv)", value=True)
+uploaded = st.file_uploader("Upload additional filter CSV (optional)", type="csv")
 
-    df_out = pd.DataFrame({"numbers": [fmt_combo(c) for c in candidates]})
-    st.download_button(
-        "Download survivors (CSV)",
-        df_out.to_csv(index=False),
-        file_name="pb_final_survivors.csv",
-        mime="text/csv",
-    )
+filters_df = pd.DataFrame(columns=["id","name","enabled","applicable_if","expression"])
+if use_default:
+    _default_path = Path(__file__).with_name("pb_final_filters_all.csv")
+    if _default_path.exists():
+        filters_df = pd.concat([filters_df, _load_filters_csv(_default_path)], ignore_index=True)
+    else:
+        st.warning("Default pack pb_final_filters_all.csv not found alongside this app.")
+
+if uploaded is not None:
+    filters_df = pd.concat([filters_df, _load_filters_csv(uploaded)], ignore_index=True)
+
+if filters_df.empty:
+    st.info("No manual filters loaded; skipping this stage.")
+else:
+    # --- Compile rules ---
+    compiled = []
+    for _, r in filters_df.iterrows():
+        if str(r["enabled"]).strip().lower() not in ("", "true", "1", "yes"):
+            continue
+        fid = str(r["id"]).strip() or "UNKNOWN"
+        name = str(r["name"]).strip() or fid
+        appif = (str(r["applicable_if"]).strip() or "True")
+        expr  = (str(r["expression"]).strip())
+        try:
+            app_c  = compile(appif, f"<appif:{fid}>", "eval")
+            expr_c = compile(expr,  f"<expr:{fid}>",  "eval")
+            compiled.append((fid, name, app_c, expr_c))
+        except Exception as e:
+            st.warning(f"Skipping {fid} (compile error): {e}")
+
+    # --- Preview initial elimination counts ---
+    hide_zero = st.checkbox("Hide filters with 0 initial eliminations", value=True)
+    colA, colB = st.columns([1,1])
+    with colA:
+        sel_all = st.button("Select all")
+    with colB:
+        desel_all = st.button("Deselect all")
+
+    init_counts = {}
+    for fid, name, app_c, expr_c in compiled:
+        cuts = 0
+        for c in candidates:  # 'candidates' is the pool produced by tens×ones + percentile stage
+            ctx = build_ctx(c, seed_numbers, prev_seed_numbers)  # your existing helper
+            try:
+                if eval(app_c,  {}, ctx) and eval(expr_c, {}, ctx):
+                    cuts += 1
+            except Exception:
+                pass
+        init_counts[fid] = cuts
+
+    # --- Checkboxes list and apply ---
+    active = {}
+    for fid, name, app_c, expr_c in compiled:
+        cuts = init_counts.get(fid, 0)
+        if hide_zero and cuts == 0:
+            continue
+        label = f"{fid}: {name} — init cuts {cuts}"
+        default = (cuts > 0)
+        if sel_all: default = True
+        if desel_all: default = False
+        active[fid] = st.checkbox(label, value=default, key=f"final_{fid}")
+
+    survivors = []
+    for c in candidates:
+        ctx = build_ctx(c, seed_numbers, prev_seed_numbers)
+        eliminated = False
+        for fid, name, app_c, expr_c in compiled:
+            if not active.get(fid, False):
+                continue
+            try:
+                if eval(app_c, {}, ctx) and eval(expr_c, {}, ctx):
+                    eliminated = True
+                    break
+            except Exception:
+                pass
+        if not eliminated:
+            survivors.append(c)
+
+    candidates = survivors  # update pool for the rest of the app
+
+st.subheader(f"Remaining after manual filters: {len(candidates)}")
+
     st.download_button(
         "Download survivors (TXT)",
         "\n".join(df_out["numbers"]),
