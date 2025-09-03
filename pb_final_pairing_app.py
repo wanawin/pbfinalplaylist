@@ -228,7 +228,7 @@ if use_hist and history_seeds:
             prev_numbers = history_seeds[-(seed_index+2)]
         else:
         # fall back to manual parse below
-        pass
+pass
 
 
     if seed_text and not seed_numbers:
