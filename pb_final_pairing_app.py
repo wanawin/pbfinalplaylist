@@ -268,6 +268,14 @@ def main():
 
     # Show bands for transparency
     with st.expander("Percentile bands in use"):
+        # === CSV-driven manual filters (final-stage) ===
+candidates = manual_filters_ui(
+    candidates=candidates,
+    seed_numbers=seed_numbers,
+    prev_seed_numbers=prev_seed_numbers,
+)
+st.caption(f"Manual filters block ran — pool now: {len(candidates)}")
+
         st.write({
             "SUM": bands["sum"],
             "RANGE": bands["range"],
