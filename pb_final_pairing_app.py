@@ -234,8 +234,8 @@ if use_hist and history_seeds:
         if prev_text and not prev_numbers:
            st.sidebar.error("Prev winner must have exactly 5 integers in 1..69.")
 
-    tens_list, bad_t = normalize_tens(t_text)
-    ones_list, bad_o = normalize_ones(o_text)
+tens_list, bad_t = normalize_tens(t_text)
+ones_list, bad_o = normalize_ones(o_text)
     if bad_t: st.sidebar.warning(f"Ignored invalid tens entries: {', '.join(bad_t[:5])}" + (" ..." if len(bad_t)>5 else ""))
     if bad_o: st.sidebar.warning(f"Ignored invalid ones entries: {', '.join(bad_o[:5])}" + (" ..." if len(bad_o)>5 else ""))
 
