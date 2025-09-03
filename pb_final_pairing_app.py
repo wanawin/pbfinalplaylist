@@ -190,8 +190,8 @@ def parse_numbers(s):
         if len(nums) == 5:
             return sorted(nums)
         return []
-       seed_numbers = parse_numbers(seed_text)
-       prev_numbers = parse_numbers(prev_text)
+    seed_numbers = parse_numbers(seed_text)
+    prev_numbers = parse_numbers(prev_text)
 
     # --- History seeds (auto from pwrbll.txt if available)
     history_seeds = []
