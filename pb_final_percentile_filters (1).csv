@@ -1,0 +1,5 @@
+id,name,enabled,applicable_if,expression
+FINAL_KEEP_SUM_P10_P90,Eliminate if FINAL SUM NOT in P10–P90 (122–222),True,,not (122 <= final_sum <= 222)
+FINAL_KEEP_SUM_P20_P80,"Eliminate if FINAL SUM NOT in P20–P80 (138–208) (tighter, optional)",False,,not (138 <= final_sum <= 208)
+FINAL_KEEP_RANGE_P10_P90,Eliminate if FINAL RANGE NOT in P10–P90 (115–208),True,,not (115 <= final_range <= 208)
+FINAL_KEEP_RANGE_P20_P80,"Eliminate if FINAL RANGE NOT in P20–P80 (128–193) (tighter, optional)",False,,not (128 <= final_range <= 193)
