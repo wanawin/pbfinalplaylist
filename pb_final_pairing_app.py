@@ -4,6 +4,69 @@ from itertools import permutations
 import csv, os, re
 import pandas as pd
 import numpy as np
+# --- UI Patch: Eliminate combos whose SUM matches any of the last N seed sums ---
+# Drop-in snippet for your Streamlit app (place in your Filters section)
+
+import pandas as pd
+import streamlit as st
+
+def get_last_n_seed_sums(draws_df: pd.DataFrame, n: int) -> set:
+    """
+    draws_df: DataFrame of historical draws with numeric columns P1..P5 (ordered chronologically).
+    Returns a set of the last N *seed* sums (sum of previous draw's five numbers).
+    """
+    # Seed is previous draw; its sum is the sum of that row
+    seed_sums = draws_df[["P1","P2","P3","P4","P5"]].sum(axis=1)
+    # Take the last N seed sums (most recent N rows excluding the very last if you wish to avoid self-reference)
+    last_n = seed_sums.tail(n)
+    return set(last_n.tolist())
+
+def sum_from_combo_row(row: pd.Series) -> int:
+    """Supports pools with P1..P5 columns OR a 'combo'/'Result' string like '03-18-22-27-33'."""
+    if {"P1","P2","P3","P4","P5"}.issubset(row.index):
+        return int(row["P1"]) + int(row["P2"]) + int(row["P3"]) + int(row["P4"]) + int(row["P5"])  
+    for key in ("combo", "Result", "numbers"):
+        if key in row and isinstance(row[key], str):
+            parts = [int(x) for x in row[key].replace(","," ").replace("-"," ").split()[:5]]
+            return sum(parts)
+    raise ValueError("Pool row must have P1..P5 or a combo/Result string with five numbers.")
+
+@st.cache_data(show_spinner=False)
+def apply_sum_in_last_n_seeds_filter(pool_df: pd.DataFrame, draws_df: pd.DataFrame, n: int) -> tuple[pd.DataFrame, pd.DataFrame, set]:
+    """
+    Returns (kept_df, eliminated_df, blocked_sums)
+    """
+    blocked_sums = get_last_n_seed_sums(draws_df, n)
+    pool_with_sum = pool_df.copy()
+    pool_with_sum["_sum"] = pool_with_sum.apply(sum_from_combo_row, axis=1)
+    mask_keep = ~pool_with_sum["_sum"].isin(blocked_sums)
+    kept = pool_with_sum[mask_keep].drop(columns=["_sum"], errors="ignore")
+    eliminated = pool_with_sum[~mask_keep].drop(columns=["_sum"], errors="ignore")
+    return kept, eliminated, blocked_sums
+
+# ----------------- UI Controls -----------------
+st.subheader("Sum Filter · Block sums seen in recent seeds")
+colA, colB, colC = st.columns([1.2,1,1.2])
+with colA:
+    enable_sum_block = st.checkbox("Enable 'Sum in Last N Seeds' filter", value=False)
+with colB:
+    lookback_n = st.number_input("Lookback N (seeds)", min_value=5, max_value=60, value=20, step=1)
+with colC:
+    st.caption("Historically, N=20 blocks ~10% of winners (rate varies by dataset).")
+
+if enable_sum_block:
+    try:
+        # EXPECTED: you already have these DataFrames in your app
+        # pool_df: your current candidate combinations
+        # draws_df: historical draws with P1..P5 numeric columns
+        kept_df, eliminated_df, blocked = apply_sum_in_last_n_seeds_filter(pool_df, draws_df, lookback_n)
+        st.success(f"Applied: blocked {len(blocked)} unique sums · Eliminated {len(eliminated_df):,} · Kept {len(kept_df):,}")
+        with st.expander("View eliminated combos"):
+            st.dataframe(eliminated_df, use_container_width=True, height=300)
+        # Replace pool_df in-session if you chain filters
+        pool_df = kept_df
+    except Exception as e:
+        st.error(f"Sum-in-last-N filter error: {e}")
 
 # ----------------------
 # Helpers: parsing & normalization
