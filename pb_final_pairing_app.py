@@ -226,7 +226,7 @@ if use_hist and history_seeds:
         # optionally prev
         if seed_index+1 < len(history_seeds):
             prev_numbers = history_seeds[-(seed_index+2)]
-    else:
+ else:
         # fall back to manual parse below
         pass
 
