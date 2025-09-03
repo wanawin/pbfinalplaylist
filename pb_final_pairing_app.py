@@ -393,9 +393,12 @@ def main():
                 st.write("-".join(f"{x:02d}" for x in c))
 
     # Downloads
-    df_out = pd.DataFrame({"numbers": ["-".join(f\"{x:02d}\" for x in c) for c in pool]})
-    st.download_button("Download final survivors (CSV)", df_out.to_csv(index=False), file_name="pb_final_survivors.csv", mime="text/csv")
-    st.download_button("Download final survivors (TXT)", "\n".join(df_out['numbers']), file_name="pb_final_survivors.txt", mime="text/plain")
+  csv_bytes = df_out.to_csv(index=False).encode("utf-8")
+txt_bytes = ("\n".join(df_out["numbers"])).encode("utf-8")
+
+st.download_button("Download survivors (CSV)", csv_bytes, "pb_final_survivors.csv", "text/csv")
+st.download_button("Download survivors (TXT)", txt_bytes, "pb_final_survivors.txt", "text/plain")
+
 
 if __name__ == "__main__":
     main()
